@@ -7,7 +7,7 @@ from collections import namedtuple
 from policyuniverse.policy import Policy
 
 
-Item = namedtuple('Item', 'config account_number')
+Item = namedtuple('Item', 'config account')
 
 
 class ResourcePolicyTestCase(SecurityMonkeyTestCase):
@@ -114,7 +114,7 @@ class ResourcePolicyTestCase(SecurityMonkeyTestCase):
     def test_load_policies(self):
         
         policy01 = dict(Version='2012-10-08', Statement=[])
-        test_item = Item(account_number=None, config=dict(Policy=policy01))
+        test_item = Item(account=None, config=dict(Policy=policy01))
         
         rpa = ResourcePolicyAuditor(accounts=["012345678910"])
         # Policy class has no equivelance test at the moment.
@@ -143,7 +143,7 @@ class ResourcePolicyTestCase(SecurityMonkeyTestCase):
 
         # simulate a lambda function, which contains multiple policies
         test_item = Item(
-            account_number=None,
+            account=None,
             config=dict(
                 Policies=dict(
                     Aliases=dict(
@@ -165,12 +165,6 @@ class ResourcePolicyTestCase(SecurityMonkeyTestCase):
         self.assertEqual(rpa.OBJECT_STORE['s3']['my-test-s3-bucket'], set(['012345678910']))
         self.assertEqual(rpa.OBJECT_STORE['ACCOUNTS']['FRIENDLY'], set(['012345678910', '222222222222']))
         self.assertEqual(rpa.OBJECT_STORE['ACCOUNTS']['THIRDPARTY'], set(['333333333333']))
-
-        self.assertEqual(
-            set(rpa.OBJECT_STORE['username'].keys()),
-            set(['my-test-iam-user', 'my-test-iam-role',
-                 'my-test-iam-user-two', 'my-test-iam-role-two',
-                 'my-test-iam-user-three', 'my-test-iam-role-three']))
 
         self.assertEqual(
             set(rpa.OBJECT_STORE['userid'].keys()),
@@ -218,7 +212,7 @@ class ResourcePolicyTestCase(SecurityMonkeyTestCase):
                             'AWS:SourceIP': ['54.11.11.11', '10.1.1.1/18', '172.16.11.11']
                         }})])
 
-        test_item = Item(account_number='012345678910', config=None)
+        test_item = Item(account='TEST_ACCOUNT', config=None)
         policy = Policy(policy01)
         for who in policy.whos_allowed():
             self.assertEqual(set(['SAME']), rpa.inspect_who(who, test_item))
@@ -245,7 +239,7 @@ class ResourcePolicyTestCase(SecurityMonkeyTestCase):
                             'AWS:SourceIP': ['54.22.22.22', '10.2.2.2/18', '172.16.22.22']
                         }})])
 
-        test_item = Item(account_number='012345678910', config=None)
+        test_item = Item(account='TEST_ACCOUNT', config=None)
         policy = Policy(policy02)
         for who in policy.whos_allowed():
             self.assertEqual(set(['FRIENDLY']), rpa.inspect_who(who, test_item))
@@ -272,7 +266,7 @@ class ResourcePolicyTestCase(SecurityMonkeyTestCase):
                             'AWS:SourceIP': ['54.33.33.33', '10.3.3.3/18', '172.16.33.33']
                         }})])
 
-        test_item = Item(account_number='012345678910', config=None)
+        test_item = Item(account='TEST_ACCOUNT', config=None)
         policy = Policy(policy03)
         for who in policy.whos_allowed():
             self.assertEqual(set(['THIRDPARTY']), rpa.inspect_who(who, test_item))
@@ -299,7 +293,7 @@ class ResourcePolicyTestCase(SecurityMonkeyTestCase):
                             'AWS:SourceIP': ['54.44.44.44', '10.4.4.4/18', '172.16.44.44']
                         }})])
 
-        test_item = Item(account_number='012345678910', config=None)
+        test_item = Item(account='TEST_ACCOUNT', config=None)
         policy = Policy(policy04)
         for who in policy.whos_allowed():
             self.assertEqual(set(['UNKNOWN']), rpa.inspect_who(who, test_item))
@@ -317,7 +311,7 @@ class ResourcePolicyTestCase(SecurityMonkeyTestCase):
                     Action=['ec2:*'],
                     Resource='*')])
 
-        test_item = Item(account_number='012345678910', config=dict(Policy=policy01))
+        test_item = Item(account='TEST_ACCOUNT', config=dict(Policy=policy01))
         def mock_add_issue(score, issue, item, notes=None):
             self.assertEqual(10, score)
             self.assertEqual('None is Internet Accessible.', issue)
@@ -335,7 +329,7 @@ class ResourcePolicyTestCase(SecurityMonkeyTestCase):
                     Action=['ec2:*'],
                     Resource='*')])
 
-        test_item = Item(account_number='012345678910', config=dict(Policy=policy02))
+        test_item = Item(account='TEST_ACCOUNT', config=dict(Policy=policy02))
         
         def mock_add_issue_two(score, issue, item, notes=None):
             # should not get here
@@ -357,7 +351,7 @@ class ResourcePolicyTestCase(SecurityMonkeyTestCase):
                     Action=['ec2:*'],
                     Resource='*')])
 
-        test_item = Item(account_number='012345678910', config=dict(Policy=policy01))
+        test_item = Item(account='TEST_ACCOUNT', config=dict(Policy=policy01))
         def mock_add_issue(score, issue, item, notes=None):
             self.assertEqual(0, score)
             self.assertEqual('None provides friendly cross account access.', issue)
@@ -379,7 +373,7 @@ class ResourcePolicyTestCase(SecurityMonkeyTestCase):
                     Action=['ec2:*'],
                     Resource='*')])
 
-        test_item = Item(account_number='012345678910', config=dict(Policy=policy01))
+        test_item = Item(account='TEST_ACCOUNT', config=dict(Policy=policy01))
         def mock_add_issue(score, issue, item, notes=None):
             self.assertEqual(10, score)
             self.assertEqual('None provides cross account access to an unknown account.', issue)
