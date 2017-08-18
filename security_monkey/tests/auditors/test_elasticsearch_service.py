@@ -282,10 +282,6 @@ CONFIG_NINE = {
 }
 
 
-WHITELIST_CIDRS = [
-    ("Test one", "192.168.1.1/32"),
-    ("Test two", "100.0.0.1/16"),
-]
 
 
 class ElasticSearchServiceTestCase(SecurityMonkeyTestCase):
@@ -313,39 +309,46 @@ class ElasticSearchServiceTestCase(SecurityMonkeyTestCase):
         db.session.add(account)
         db.session.commit()
 
+        # Add some test network whitelists into this:
+        # es_auditor.network_whitelist = []
+        WHITELIST_CIDRS = [
+            ("Test one", "192.168.1.1/32"),
+            ("Test two", "100.0.0.0/16"),
+        ]
+        for cidr in WHITELIST_CIDRS:
+            whitelist_cidr = NetworkWhitelistEntry()
+            whitelist_cidr.name = cidr[0]
+            whitelist_cidr.notes = cidr[0]
+            whitelist_cidr.cidr = cidr[1]
+            db.session.add(whitelist_cidr)
+            db.session.commit()
+
     def test_es_auditor(self):
         from security_monkey.auditors.elasticsearch_service import ElasticSearchServiceAuditor
         es_auditor = ElasticSearchServiceAuditor(accounts=["012345678910"])
-
-        # Add some test network whitelists into this:
-        es_auditor.network_whitelist = []
-        for cidr in WHITELIST_CIDRS:
-            whitelist_cidr = NetworkWhitelistEntry()
-            whitelist_cidr.cidr = cidr[1]
-            whitelist_cidr.name = cidr[0]
-
-            es_auditor.network_whitelist.append(whitelist_cidr)
+        es_auditor.prep_for_audit()
 
         for es_domain in self.es_items:
-            es_auditor.check_es_access_policy(es_domain)
+            es_auditor.check_internet_accessible(es_domain)
+            es_auditor.check_friendly_cross_account(es_domain)
+            es_auditor.check_unknown_cross_account(es_domain)
+            es_auditor.check_root_cross_account(es_domain)
 
         # Check for correct number of issues located:
-        # CONFIG ONE:
         self.assertEquals(len(self.es_items[0].audit_issues), 1)
-        self.assertEquals(self.es_items[0].audit_issues[0].score, 20)
+        self.assertEquals(self.es_items[0].audit_issues[0].score, 10)
 
         # CONFIG TWO:
         self.assertEquals(len(self.es_items[1].audit_issues), 1)
-        self.assertEquals(self.es_items[1].audit_issues[0].score, 20)
+        self.assertEquals(self.es_items[1].audit_issues[0].score, 10)
 
         # CONFIG THREE:
-        self.assertEquals(len(self.es_items[2].audit_issues), 2)
-        self.assertEquals(self.es_items[2].audit_issues[0].score, 5)
-        self.assertEquals(self.es_items[2].audit_issues[1].score, 7)
+        self.assertEquals(len(self.es_items[2].audit_issues), 1)
+        self.assertEquals(self.es_items[2].audit_issues[0].score, 10)
 
         # CONFIG FOUR:
         self.assertEquals(len(self.es_items[3].audit_issues), 1)
-        self.assertEquals(self.es_items[3].audit_issues[0].score, 20)
+        self.assertEquals(self.es_items[3].audit_issues[0].score, 10)
 
         # CONFIG FIVE:
         self.assertEquals(len(self.es_items[4].audit_issues), 0)
@@ -354,16 +357,15 @@ class ElasticSearchServiceTestCase(SecurityMonkeyTestCase):
         self.assertEquals(len(self.es_items[5].audit_issues), 0)
 
         # CONFIG SEVEN:
-        self.assertEquals(len(self.es_items[6].audit_issues), 3)
-        self.assertEquals(self.es_items[6].audit_issues[0].score, 5)
-        self.assertEquals(self.es_items[6].audit_issues[1].score, 5)
-        self.assertEquals(self.es_items[6].audit_issues[2].score, 7)
+        self.assertEquals(len(self.es_items[6].audit_issues), 2)
+        self.assertEquals(self.es_items[6].audit_issues[0].score, 10)
+        self.assertEquals(self.es_items[6].audit_issues[1].score, 10)
 
         # CONFIG EIGHT:
         self.assertEquals(len(self.es_items[7].audit_issues), 1)
-        self.assertEquals(self.es_items[7].audit_issues[0].score, 20)
+        self.assertEquals(self.es_items[7].audit_issues[0].score, 10)
 
         # CONFIG NINE:
         self.assertEquals(len(self.es_items[8].audit_issues), 2)
-        self.assertEquals(self.es_items[8].audit_issues[0].score, 6)
-        self.assertEquals(self.es_items[8].audit_issues[1].score, 10)
+        self.assertEquals(self.es_items[8].audit_issues[0].score, 10)
+        self.assertEquals(self.es_items[8].audit_issues[1].score, 6)

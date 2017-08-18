@@ -21,7 +21,7 @@
 """
 from security_monkey import app
 from security_monkey.auditor import Auditor
-from security_monkey.datastore import Account, Item, Technology
+from security_monkey.datastore import Account, Item, Technology, NetworkWhitelistEntry
 
 from policyuniverse.arn import ARN
 from policyuniverse.policy import Policy
@@ -30,6 +30,7 @@ import json
 import dpath.util
 from dpath.exceptions import PathNotFound
 from collections import defaultdict
+import ipaddr
 
 
 def add(to, key, value):
@@ -57,6 +58,7 @@ class ResourcePolicyAuditor(Auditor):
             self._load_vpcs()
             self._load_vpces()
             self._load_natgateways()
+            self._load_network_whitelist()
 
     @classmethod
     def _load_s3_buckets(cls):
@@ -88,6 +90,13 @@ class ResourcePolicyAuditor(Auditor):
             for address in gateway.config.get('nat_gateway_addresses', []):
                 add(cls.OBJECT_STORE['cidr'], address['public_ip'], gateway.account.identifier)
                 add(cls.OBJECT_STORE['cidr'], address['private_ip'], gateway.account.identifier)
+
+    @classmethod
+    def _load_network_whitelist(cls):
+        """Stores the Network Whitelist CIDRs."""
+        whitelist_entries = NetworkWhitelistEntry.query.all()
+        for entry in whitelist_entries:
+            add(cls.OBJECT_STORE['cidr'], entry.cidr, '000000000000')
 
     @classmethod
     def _load_userids(cls):
@@ -174,6 +183,11 @@ class ResourcePolicyAuditor(Auditor):
         notes = 'Access provided to {category}:{who}.'.format(category=who.category, who=who.value)
         self.add_issue(10, tag, item, notes=notes)
 
+    def record_arn_parse_issue(self, item, arn):
+        tag = "Auditor could not parse ARN"
+        notes = arn
+        self.add_issue(3, tag, item, notes=notes)
+
     def check_internet_accessible(self, item):
         """A resource policy is typically internet accessible if:
         
@@ -202,9 +216,28 @@ class ResourcePolicyAuditor(Auditor):
     def check_unknown_cross_account(self, item):
         policies = self.load_policies(item)
         for policy in policies:
+            if policy.is_internet_accessible():
+                continue
             for who in policy.whos_allowed():
+                if who.value == '*' and who.category == 'principal':
+                    continue
                 if 'UNKNOWN' in self.inspect_who(who, item):
                     self.record_unknown_cross_account_access_issue(item, who)
+
+    def check_root_cross_account(self, item):
+        policies = self.load_policies(item)
+        for policy in policies:
+            for statement in policy.statements:
+                if statement.effect != 'Allow':
+                    continue
+                for who in statement.whos_allowed():
+                    if who.category not in ['arn', 'principal']:
+                        continue
+                    if who.value == '*':
+                        continue
+                    arn = ARN(who.value)
+                    if arn.root and self.inspect_who(who, item).intersection(set(['FRIENDLY', 'THIRDPARTY', 'UNKNOWN'])):
+                        self._check_cross_account_root(item, arn, statement.actions)
 
     def inspect_who(self, who, item):
         """A who could be:
@@ -212,7 +245,6 @@ class ResourcePolicyAuditor(Auditor):
         - ARN
         - Account Number
         - UserID
-        - UserName
         - CIDR
         - VPC
         - VPCE
@@ -224,11 +256,10 @@ class ResourcePolicyAuditor(Auditor):
             'FRIENDLY' - The who is in an account Security Monkey knows about.
             'UNKNOWN' - The who is in an account Security Monkey does not know about.
         """
-        same = item.account_number
-        same = Account.query.filter(Account.identifier == item.account_number).first()
+        same = Account.query.filter(Account.name == item.account).first()
         
         if who.category in ['arn', 'principal']:
-            return self.inspect_who_arn(who.value, same)
+            return self.inspect_who_arn(who.value, same, item)
         if who.category == 'account':
             return set([self.inspect_who_account(who.value, same)])
         if who.category == 'userid':
@@ -242,10 +273,13 @@ class ResourcePolicyAuditor(Auditor):
         
         return 'ERROR'
     
-    def inspect_who_arn(self, arn, same):
-        arn = ARN(arn)
+    def inspect_who_arn(self, arn_input, same, item):
+        if arn_input == '*':
+            return set(['UNKNOWN'])
+
+        arn = ARN(arn_input)
         if arn.error:
-            self.record_arn_parse_issue()
+            self.record_arn_parse_issue(item, arn_input)
 
         if arn.tech == 's3':
             return self.inspect_who_s3(arn.name, same)
@@ -253,6 +287,8 @@ class ResourcePolicyAuditor(Auditor):
         return set([self.inspect_who_account(arn.account_number, same)])
 
     def inspect_who_account(self, account_number, same):
+        if account_number == '000000000000':
+            return 'SAME'
         if account_number == same.identifier:
             return 'SAME'
         if account_number in self.OBJECT_STORE['ACCOUNTS']['FRIENDLY']:
@@ -274,8 +310,15 @@ class ResourcePolicyAuditor(Auditor):
         return self.inspect_who_generic('vpce', vpcid, same)
 
     def inspect_who_cidr(self, cidr, same):
-        return self.inspect_who_generic('cidr', cidr, same)
-    
+        values = set()
+        for str_cidr in self.OBJECT_STORE['cidr']:
+            if ipaddr.IPNetwork(cidr) in ipaddr.IPNetwork(str_cidr):
+                for account in self.OBJECT_STORE['cidr'][str_cidr]:
+                    values.add(self.inspect_who_account(account, same))
+        if not values:
+            return set(['UNKNOWN'])
+        return values
+
     def inspect_who_generic(self, key, item, same):
         if item in self.OBJECT_STORE[key]:
             values = set()
