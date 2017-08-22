@@ -1,13 +1,50 @@
 from security_monkey.tests import SecurityMonkeyTestCase
 from security_monkey.auditors.resource_policy_auditor import ResourcePolicyAuditor
 from security_monkey import db 
+from security_monkey.watcher import ChangeItem
 from security_monkey.datastore import Datastore
 from security_monkey.datastore import Account, AccountType, ItemAudit
 from collections import namedtuple
 from policyuniverse.policy import Policy
+from copy import deepcopy
 
 
 Item = namedtuple('Item', 'config account')
+
+# Example KMS Config
+# Internet Accessible
+# No Condition
+# rotation Enabled
+key0 = {
+  "Origin": "AWS_KMS",
+  "KeyId": "key_id",
+  "Description": "Description",
+  "Enabled": True,
+  "KeyUsage": "ENCRYPT_DECRYPT",
+  "Grants": [],
+  "Policy": [
+    {
+      "Version": "2012-10-17",
+      "Id": "key-consolepolicy-2",
+      "Statement": [
+        {
+          "Action": "kms:*",
+          "Sid": "Enable IAM User Permissions",
+          "Resource": "*",
+          "Effect": "Allow",
+          "Principal": {
+            "AWS": "*"
+          }
+        }
+      ]
+    }
+  ],
+  "KeyState": "Enabled",
+  "KeyRotationEnabled": True,
+  "CreationDate": "2017-01-05T20:39:18.960000+00:00",
+  "Arn": "arn:aws:kms:us-east-1:123456789123:key/key_id",
+  "AWSAccountId": "123456789123"
+}
 
 
 class ResourcePolicyTestCase(SecurityMonkeyTestCase):
@@ -381,3 +418,33 @@ class ResourcePolicyTestCase(SecurityMonkeyTestCase):
 
         rpa.add_issue = lambda *args, **kwargs: mock_add_issue(*args, **kwargs)
         rpa.check_unknown_cross_account(test_item)
+
+    def test_check_thirdparty_cross_account(self):
+        rpa = ResourcePolicyAuditor(accounts=['TEST_ACCOUNT'])
+        rpa.prep_for_audit()
+
+        key0_friendly_cross_account = deepcopy(key0)
+        key0_friendly_cross_account['Policy'][0]['Statement'][0]['Principal']['AWS'] \
+            = 'arn:aws:iam::333333333333:role/SomeRole'
+        item = ChangeItem(
+            account='TEST_ACCOUNT',
+            arn='arn:aws:kms:us-east-1:012345678910:key/key_id',
+            new_config=key0_friendly_cross_account)
+        rpa.check_thirdparty_cross_account(item)
+        self.assertEquals(len(item.audit_issues), 1)
+        self.assertEquals(item.audit_issues[0].score, 0)
+
+    def test_check_root_cross_account(self):
+        rpa = ResourcePolicyAuditor(accounts=['TEST_ACCOUNT'])
+        rpa.prep_for_audit()
+
+        key0_friendly_cross_account = deepcopy(key0)
+        key0_friendly_cross_account['Policy'][0]['Statement'][0]['Principal']['AWS'] \
+            = 'arn:aws:iam::222222222222:root'
+        item = ChangeItem(
+            account='TEST_ACCOUNT',
+            arn='arn:aws:kms:us-east-1:012345678910:key/key_id',
+            new_config=key0_friendly_cross_account)
+        rpa.check_root_cross_account(item)
+        self.assertEquals(len(item.audit_issues), 1)
+        self.assertEquals(item.audit_issues[0].score, 6)

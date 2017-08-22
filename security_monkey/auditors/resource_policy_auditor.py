@@ -158,7 +158,12 @@ class ResourcePolicyAuditor(Auditor):
             try:
                 policy = dpath.util.values(item.config, key, separator='$')
                 if isinstance(policy, list):
-                    policies.extend([Policy(p) for p in policy])
+                    for p in policy:
+                        if isinstance(p, list):
+                            policies.extend([Policy(pp) for pp in p])
+                        else:
+                            policies.append(Policy(p))
+                    # policies.extend([Policy(p) for p in policy])
                 else:
                     policies.append(Policy(policy))
             except PathNotFound:
@@ -175,6 +180,11 @@ class ResourcePolicyAuditor(Auditor):
 
     def record_friendly_cross_account_access_issue(self, item, who):
         tag = "{singular} provides friendly cross account access.".format(singular=self.i_am_singular)
+        notes = 'Access provided to {category}:{who}.'.format(category=who.category, who=who.value)
+        self.add_issue(0, tag, item, notes=notes)
+
+    def record_thirdparty_cross_account_access_issue(self, item, who):
+        tag = "{singular} provides thirdparty cross account access.".format(singular=self.i_am_singular)
         notes = 'Access provided to {category}:{who}.'.format(category=who.category, who=who.value)
         self.add_issue(0, tag, item, notes=notes)
 
@@ -212,6 +222,13 @@ class ResourcePolicyAuditor(Auditor):
             for who in policy.whos_allowed():
                 if 'FRIENDLY' in self.inspect_who(who, item):
                     self.record_friendly_cross_account_access_issue(item, who)
+
+    def check_thirdparty_cross_account(self, item):
+        policies = self.load_policies(item)
+        for policy in policies:
+            for who in policy.whos_allowed():
+                if 'THIRDPARTY' in self.inspect_who(who, item):
+                    self.record_thirdparty_cross_account_access_issue(item, who)
 
     def check_unknown_cross_account(self, item):
         policies = self.load_policies(item)
