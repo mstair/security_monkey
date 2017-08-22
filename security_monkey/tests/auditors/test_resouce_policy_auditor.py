@@ -50,6 +50,7 @@ key0 = {
 class ResourcePolicyTestCase(SecurityMonkeyTestCase):
     
     def pre_test_setup(self):
+        ResourcePolicyAuditor(accounts=['TEST_ACCOUNT']).OBJECT_STORE.clear()
         account_type_result = AccountType(name='AWS')
         db.session.add(account_type_result)
         db.session.commit()

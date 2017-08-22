@@ -27,6 +27,7 @@ from security_monkey import db
 
 # TODO: Make a ES test for spulec/moto, then make test cases that use it.
 from security_monkey.watchers.elasticsearch_service import ElasticSearchServiceItem
+from security_monkey.auditors.elasticsearch_service import ElasticSearchServiceAuditor
 
 
 CONFIG_ONE = {
@@ -286,6 +287,7 @@ CONFIG_NINE = {
 
 class ElasticSearchServiceTestCase(SecurityMonkeyTestCase):
     def pre_test_setup(self):
+        ElasticSearchServiceAuditor(accounts=['TEST_ACCOUNT']).OBJECT_STORE.clear()
         self.es_items = [
             ElasticSearchServiceItem(region="us-east-1", account="TEST_ACCOUNT", name="es_test", config=CONFIG_ONE),
             ElasticSearchServiceItem(region="us-west-2", account="TEST_ACCOUNT", name="es_test_2", config=CONFIG_TWO),
@@ -324,7 +326,6 @@ class ElasticSearchServiceTestCase(SecurityMonkeyTestCase):
             db.session.commit()
 
     def test_es_auditor(self):
-        from security_monkey.auditors.elasticsearch_service import ElasticSearchServiceAuditor
         es_auditor = ElasticSearchServiceAuditor(accounts=["012345678910"])
         es_auditor.prep_for_audit()
 

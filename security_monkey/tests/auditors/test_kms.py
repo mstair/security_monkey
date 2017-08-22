@@ -108,6 +108,7 @@ key1 = {
 class KMSTestCase(SecurityMonkeyTestCase):
 
     def pre_test_setup(self):
+        KMSAuditor(accounts=['TEST_ACCOUNT']).OBJECT_STORE.clear()
         account_type_result = AccountType(name='AWS')
         db.session.add(account_type_result)
         db.session.commit()
