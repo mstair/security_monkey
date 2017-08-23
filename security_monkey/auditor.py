@@ -33,6 +33,7 @@ from security_monkey.alerters.custom_alerter import report_auditor_changes
 
 from sqlalchemy import and_
 from collections import defaultdict
+import json
 
 auditor_registry = defaultdict(list)
 
@@ -426,7 +427,7 @@ class Auditor(object):
         tag = "Cross-Account Root IAM"
         notes = "ALL IAM Roles/users/groups in account {} can perform the following actions:\n"\
             .format(dest_arn.account_number)
-        notes += "{}".format(actions)
+        notes += "{}".format(json.dumps(list(actions)))
         self.add_issue(6, tag, source_item, notes=notes)
 
     def get_auditor_support_items(self, auditor_index, account):

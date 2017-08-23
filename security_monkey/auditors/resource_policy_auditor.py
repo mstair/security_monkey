@@ -40,9 +40,7 @@ def add(to, key, value):
         to[key] = set([value])
 
 class ResourcePolicyAuditor(Auditor):
-    
     OBJECT_STORE = defaultdict(dict)
-    # NOT_PRINCIPAL = "An {singular} with 'NotPrincipal' must have a strong conditions block or it is Internet Accessible. "
 
     def __init__(self, accounts=None, debug=False):
         super(ResourcePolicyAuditor, self).__init__(accounts=accounts, debug=debug)
@@ -72,22 +70,22 @@ class ResourcePolicyAuditor(Auditor):
         """Store the VPC IDs. Also, extract & store network/NAT ranges."""
         results = cls._load_related_items('vpc')
         for item in results:
-            add(cls.OBJECT_STORE['vpc'], item.config.get('id'), item.account.identifier)
-            add(cls.OBJECT_STORE['cidr'], item.config.get('cidr_block'), item.account.identifier)
+            add(cls.OBJECT_STORE['vpc'], item.latest_config.get('id'), item.account.identifier)
+            add(cls.OBJECT_STORE['cidr'], item.latest_config.get('cidr_block'), item.account.identifier)
 
     @classmethod
     def _load_vpces(cls):
         """Store the VPC Endpoint IDs."""
         results = cls._load_related_items('endpoint')
         for item in results:
-            add(cls.OBJECT_STORE['vpce'], item.config.get('id'), item.account.identifier)
+            add(cls.OBJECT_STORE['vpce'], item.latest_config.get('id'), item.account.identifier)
 
     @classmethod
     def _load_natgateways(cls):
         """Store the NAT Gateway CIDRs."""
         results = cls._load_related_items('natgateway')
         for gateway in results:
-            for address in gateway.config.get('nat_gateway_addresses', []):
+            for address in gateway.latest_config.get('nat_gateway_addresses', []):
                 add(cls.OBJECT_STORE['cidr'], address['public_ip'], gateway.account.identifier)
                 add(cls.OBJECT_STORE['cidr'], address['private_ip'], gateway.account.identifier)
 
@@ -105,10 +103,10 @@ class ResourcePolicyAuditor(Auditor):
         role_results = cls._load_related_items('iamrole')
 
         for item in user_results:
-            add(cls.OBJECT_STORE['userid'], item.config.get('UserId'), item.account.identifier)
+            add(cls.OBJECT_STORE['userid'], item.latest_config.get('UserId'), item.account.identifier)
 
         for item in role_results:
-            add(cls.OBJECT_STORE['userid'], item.config.get('RoleId'), item.account.identifier)
+            add(cls.OBJECT_STORE['userid'], item.latest_config.get('RoleId'), item.account.identifier)
 
     @classmethod
     def _load_accounts(cls):
@@ -159,11 +157,12 @@ class ResourcePolicyAuditor(Auditor):
                 policy = dpath.util.values(item.config, key, separator='$')
                 if isinstance(policy, list):
                     for p in policy:
+                        if not p:
+                            continue
                         if isinstance(p, list):
                             policies.extend([Policy(pp) for pp in p])
                         else:
                             policies.append(Policy(p))
-                    # policies.extend([Policy(p) for p in policy])
                 else:
                     policies.append(Policy(policy))
             except PathNotFound:
@@ -236,8 +235,16 @@ class ResourcePolicyAuditor(Auditor):
             if policy.is_internet_accessible():
                 continue
             for who in policy.whos_allowed():
+
                 if who.value == '*' and who.category == 'principal':
                     continue
+
+                # Ignore Service Principals
+                if who.category == 'principal':
+                    arn = ARN(who.value)
+                    if arn.service:
+                        continue
+
                 if 'UNKNOWN' in self.inspect_who(who, item):
                     self.record_unknown_cross_account_access_issue(item, who)
 

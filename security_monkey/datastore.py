@@ -286,7 +286,7 @@ class Item(db.Model):
     )
 
     @hybrid_property
-    def config(self):
+    def latest_config(self):
         """Returns the config from the latest item revision."""
         return db.session.query(ItemRevision
             ).filter(ItemRevision.id==self.latest_revision_id).one().config
