@@ -23,9 +23,6 @@
 from security_monkey.auditors.resource_policy_auditor import ResourcePolicyAuditor
 from security_monkey.watchers.sqs import SQS
 
-from policyuniverse.arn import ARN
-import json
-
 
 class SQSAuditor(ResourcePolicyAuditor):
     index = SQS.index
