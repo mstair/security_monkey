@@ -34,6 +34,8 @@ import ipaddr
 
 
 def add(to, key, value):
+    if not key:
+        return
     if key in to:
         to[key].add(value)
     else:
