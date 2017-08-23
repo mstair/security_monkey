@@ -352,7 +352,7 @@ class ResourcePolicyTestCase(SecurityMonkeyTestCase):
         test_item = Item(account='TEST_ACCOUNT', config=dict(Policy=policy01))
         def mock_add_issue(score, issue, item, notes=None):
             self.assertEqual(10, score)
-            self.assertEqual('None is Internet Accessible.', issue)
+            self.assertEqual('Internet Accessible', issue)
             self.assertEqual("An None with { 'Principal': { 'AWS': '*' } } must also have a strong condition block or it is Internet Accessible. In this case, anyone is allowed to perform this action(s): [\"ec2:*\"]", notes)
 
         rpa.add_issue = lambda *args, **kwargs: mock_add_issue(*args, **kwargs)
@@ -392,7 +392,7 @@ class ResourcePolicyTestCase(SecurityMonkeyTestCase):
         test_item = Item(account='TEST_ACCOUNT', config=dict(Policy=policy01))
         def mock_add_issue(score, issue, item, notes=None):
             self.assertEqual(0, score)
-            self.assertEqual('None provides friendly cross account access.', issue)
+            self.assertEqual('Friendly Cross Account Access', issue)
             self.assertEqual("Access provided to principal:arn:aws:iam::222222222222:root.", notes)
 
         rpa.add_issue = lambda *args, **kwargs: mock_add_issue(*args, **kwargs)
@@ -414,7 +414,7 @@ class ResourcePolicyTestCase(SecurityMonkeyTestCase):
         test_item = Item(account='TEST_ACCOUNT', config=dict(Policy=policy01))
         def mock_add_issue(score, issue, item, notes=None):
             self.assertEqual(10, score)
-            self.assertEqual('None provides cross account access to an unknown account.', issue)
+            self.assertEqual('Unknown Cross Account Access', issue)
             self.assertEqual("Access provided to principal:arn:aws:iam::444444444444:root.", notes)
 
         rpa.add_issue = lambda *args, **kwargs: mock_add_issue(*args, **kwargs)

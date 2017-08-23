@@ -172,7 +172,7 @@ class ResourcePolicyAuditor(Auditor):
         return policies
 
     def record_internet_accessible_issue(self, item, actions):
-        tag = "{singular} is Internet Accessible.".format(singular=self.i_am_singular)
+        tag = "Internet Accessible".format(singular=self.i_am_singular)
         notes = "An {singular} ".format(singular=self.i_am_singular)
         notes += "with { 'Principal': { 'AWS': '*' } } must also have a strong condition block or it is Internet Accessible. "
         notes += "In this case, anyone is allowed to perform this action(s): "
@@ -180,17 +180,17 @@ class ResourcePolicyAuditor(Auditor):
         self.add_issue(10, tag, item, notes=notes)
 
     def record_friendly_cross_account_access_issue(self, item, who):
-        tag = "{singular} provides friendly cross account access.".format(singular=self.i_am_singular)
+        tag = 'Friendly Cross Account Access'
         notes = 'Access provided to {category}:{who}.'.format(category=who.category, who=who.value)
         self.add_issue(0, tag, item, notes=notes)
 
     def record_thirdparty_cross_account_access_issue(self, item, who):
-        tag = "{singular} provides thirdparty cross account access.".format(singular=self.i_am_singular)
+        tag = 'Friendly Third Party Cross Account Access'
         notes = 'Access provided to {category}:{who}.'.format(category=who.category, who=who.value)
         self.add_issue(0, tag, item, notes=notes)
 
     def record_unknown_cross_account_access_issue(self, item, who):
-        tag = "{singular} provides cross account access to an unknown account.".format(singular=self.i_am_singular)
+        tag = "Unknown Cross Account Access"
         notes = 'Access provided to {category}:{who}.'.format(category=who.category, who=who.value)
         self.add_issue(10, tag, item, notes=notes)
 
