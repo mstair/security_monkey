@@ -13,7 +13,7 @@ Connecting to your new instance:
 
 We will connect to the new instance over ssh:
 
-$ ssh -i <PRIVATE_KEY> -l ubuntu <IP_ADDRESS>
+    $ ssh -i <PRIVATE_KEY> -l ubuntu <IP_ADDRESS>
 
 Replace the PRIVATE_KEY parameter with the private key for your keypair assigned in instance creation
 Replace the IP_ADDRESS with the IP address of your instance (public or floating ip, depending on network assignment)
