@@ -22,7 +22,7 @@
 from security_monkey.tests.watchers.openstack import OpenStackWatcherTestCase
 
 from cloudaux.openstack.object_container import get_container_metadata
-from cloudaux.tests.openstack.mock_object_container import mock_get_container_metadata
+from tests.openstack.mock_object_container import mock_get_container_metadata
 
 import mock
 
