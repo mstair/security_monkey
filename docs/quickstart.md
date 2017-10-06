@@ -194,7 +194,7 @@ For clarity: the `-n NAME` refers to the name that you want Security Monkey to u
 A common example would be "test" for your testing AWS account or "prod" for your main production AWS account. These names are unique.
 
 The `--id IDENTIFIER` is the back-end cloud service identifier for a given provider. For AWS, it's the 12 digit account number, 
-and for GCP, it's the project ID. For OpenStack, its the cloud configuration to load from the clouds.yaml file.
+and for GCP, it's the project ID. For OpenStack, it's the cloud configuration to load from the clouds.yaml file.
 
 ### Syncing With SWAG
 
