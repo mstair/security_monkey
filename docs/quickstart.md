@@ -69,7 +69,7 @@ Install Postgres:
 
 Configure the DB:
 
-	sudo -u postgres psql
+    sudo -u postgres psql
     CREATE DATABASE "secmonkey";
     CREATE ROLE "securitymonkeyuser" LOGIN PASSWORD 'securitymonkeypassword';
     CREATE SCHEMA secmonkey;
