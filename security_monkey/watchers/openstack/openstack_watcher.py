@@ -41,8 +41,8 @@ class OpenStackWatcher(CloudAuxWatcher):
         _account = Account.query.filter(Account.name.in_([account])).one()
         return _account.identifier, _account.getCustom('cloudsyaml_file')
 
-    """ Regions are not global but account specific """
     def _get_account_regions(self):
+        """ Regions are not global but account specific """
         def _get_regions(cloud_name, yaml_file):
             return [ _region.get('name') for _region in  get_regions( cloud_name, yaml_file ) ]
 
@@ -52,8 +52,8 @@ class OpenStackWatcher(CloudAuxWatcher):
             account_regions[(account, cloud_name, yaml_file)] = _get_regions(cloud_name, yaml_file)
         return account_regions
 
-    """ OpenStack allows for duplicate item names in same project for nearly all config types, add id """
     def get_name_from_list_output(self, item):
+        """ OpenStack allows for duplicate item names in same project for nearly all config types, add id """
         return "{} ({})".format(item.name, item.id) if item.name else item.id
 
     def get_method(self, item, **kwargs):

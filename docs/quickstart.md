@@ -4,7 +4,7 @@ Quick Start Guide
 Setup on AWS, GCP, or OpenStack
 -------------------------------
 
-Security Monkey can run on an Amazon EC2 (AWS) instance, Google Cloud Platform (GCP) instance (Google Cloud Platform), or OpenStack (Rackspace or private cloud) instance. The only real difference in the installation is the IAM configuration and the bringup of the Virtual Machine that runs Security Monkey.
+Security Monkey can run on an Amazon EC2 (AWS) instance, Google Cloud Platform (GCP) instance (Google Cloud Platform), or OpenStack (public or private cloud) instance. The only real difference in the installation is the IAM configuration and the bringup of the Virtual Machine that runs Security Monkey.
 
 GitHub Organization Monitoring
 --------------
@@ -22,9 +22,10 @@ Database
 
 Security Monkey needs a postgres database. Select one of the following:
 
--   Local Postgres (You'll set this up later once you have an instance up.). Currently OpenStack utilizes a local postgres database.
+-   Local Postgres (You'll set this up later once you have an instance up.).
 -   [Postgres on AWS RDS](postgres_aws.md).
 -   [Postgres on GCP's Cloud SQL](postgres_gcp.md).
+-   Currently OpenStack utilizes a local postgres database.
 
 Launch an Instance:
 -------------------
@@ -93,7 +94,7 @@ Releases are on the master branch and are updated about every three months. Blee
     pip install --upgrade urllib3[secure]   # to prevent InsecurePlatformWarning
     pip install google-compute-engine  # Only required on GCP
     pip install cloudaux\[gcp\]
-    pip install openstacksdk cloudaux\[openstack\] # Only required on OpenStack
+    pip install cloudaux\[openstack\] # Only required on OpenStack
     python setup.py develop
     
 ### 🚨⚠️🥁🎺 ULTRA SUPER IMPORTANT SPECIAL NOTE PLEASE READ THIS 🎺🥁⚠️🚨 ###
