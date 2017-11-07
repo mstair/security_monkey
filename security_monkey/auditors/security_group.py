@@ -39,7 +39,7 @@ class SecurityGroupAuditor(Auditor):
     i_am_plural = SecurityGroup.i_am_plural
 
     def __init__(self, accounts=None, debug=False):
-        super(SecurityGroupAuditor, self).__init__(accounts=accounts, debug=debug)
+        super(self.__class__, self).__init__(accounts=accounts, debug=debug)
 
     def _port_for_rule(self, rule):
         """
