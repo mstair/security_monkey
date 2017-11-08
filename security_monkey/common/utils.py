@@ -137,9 +137,9 @@ def find_modules(folder):
                 try:
                     module=imp.load_source(modname, os.path.join(root,fname))
                 except ImportError:
-                    app.logger.info("Failed to load module %s from %s", modname, os.path.join(root,fname))
+                    app.logger.debug("Failed to load module %s from %s", modname, os.path.join(root,fname))
                 else:
-                    app.logger.info("Loaded module %s from %s", modname, os.path.join(root,fname))
+                    app.logger.debug("Loaded module %s from %s", modname, os.path.join(root,fname))
 
 
 def load_plugins(group):
